@@ -35,6 +35,11 @@ PDB2PQR
 pip install pdb2pqr 
 ```
 
+Pakiet parmed
+```bash
+pip install parmed
+```
+
 
 ## Przygotowanie plików
 
@@ -118,7 +123,7 @@ saveamberparm mol SYSTEM.prmtop SYSTEM.inpcrd
 quit
 ```
 
-I odpalamy go:
+I urachamiamy skrypt w `tleap`:
 
 ```bash
 tleap -f tleap.in 
@@ -126,7 +131,9 @@ tleap -f tleap.in 
 
 ### Konwersja plików symulacji do formatu GROMACS
 
-Same obliczenia MD będziemy odpalać w GROMACS, a nie Amber, dlatego zmienimy format plików z topologią i współrzędnymi. Można do tego użyć pakietu `parmed`: Odpalamy interpreter Pythona i:
+Same obliczenia MD będziemy odpalać w GROMACS, a nie Amber, dlatego zmienimy format plików z topologią i współrzędnymi. Można do tego użyć pakietu `parmed`.
+
+W interpreterze Pythona:
 
 ```python
 import parmed
@@ -135,7 +142,7 @@ parm.save('SYSTEM.top', format='gromacs')
 parm.save('SYSTEM.gro')
 ```
 
-Teraz mamy pliki .top i .gro potrzebne do uruchomienia symulacji
+Teraz mamy pliki `.top` i `.gro` potrzebne do uruchomienia symulacji
 
 
 ## Obliczenia MD
