@@ -91,7 +91,7 @@ size_y =
 size_z = 
 ```
 
-Wartości są w Angstromach, także jeśli mamy "`npts 50 ... ... ...`" przy domyślnym spacing 0.375, oznacza to, że `size_x` wynosi $50 \cdot 0.375 \rm{\AA} = 18.75 \rm{\AA}$
+Wartości są w Angstromach, także jeśli mamy "`npts 50 ... ... ...`" przy domyślnym spacing 0.375, oznacza to, że `size_x` wynosi $50 \cdot 0.375 \AA = 18.75 \AA$
 
 ## Dokowanie
 
