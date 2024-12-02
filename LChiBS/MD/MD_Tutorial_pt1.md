@@ -13,6 +13,7 @@ wsl --install -d Ubuntu-24.04
 Instalacja Minicondy
 ```bash
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash ./Miniconda3-latest-Linux-x86_64.sh
 ```
 
 PyMol
@@ -22,7 +23,8 @@ conda install pymol-open-source
 
 AmberTools23 https://ambermd.org/GetAmber.php#ambertools
 ```bash
-conda create --name AmberTools23
+# conda create --name AmberTools23
+conda install -c conda-forge ambertools=23
 ```
 
 Gromacs
@@ -243,7 +245,8 @@ Uruchomienie symulacji
 nohup gmx mdrun -deffnm npt &
 ```
 
-### Produkcyjne MD
+
+### Produkcyjne MD 
 
 ```bash
 mkdir ../prod
@@ -259,9 +262,9 @@ Edytujemy w pliku mdp (`vim md.mdp` bądź inny edytor) czas symulacji i często
 
 ```
 ; Run parameters
-integrator              = md        ; leap-frog integrator
-nsteps                  = 100000000   ; 2 * 100000000 = 200000 ps (200 ns)
-dt                      = 0.002     ; 2 fs
+integrator              = md         ; leap-frog integrator
+nsteps                  = 100000000  ; 2 * 100000000 = 200000 ps (200 ns)
+dt                      = 0.002      ; 2 fs
 ; Output control
 nstenergy               = 50000      ; save energies every 100.0 ps
 nstlog                  = 50000      ; update log file every 100.0 ps
@@ -271,7 +274,6 @@ nstxout-compressed      = 50000      ; save coordinates every 100.0 ps
 A następnie odpalamy symulację
 
 ```bash
-
 gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p SYSTEM.top -n index.ndx -o md_0_200ns.tpr -maxwarn 2
 
 nohup gmx mdrun -deffnm md_0_200ns &
@@ -284,6 +286,64 @@ tail -n 30 md_0_200ns.log
 ```
 
 Możemy jednocześnie sprawdzać wykorzystanie zasobów poleceniem `htop` (dla karty NVIDIA `nvidia-smi`).
+
+
+### Postprodukcja
+
+Symulacja odbywa się w periodycznych warunkach brzegowych i białko się przemieszcza, także często po pewnym czasie symulacji znajdzie się na brzegu "pudełka" symulacji, co sprawia, że w trajektorii atomy są rozrzucone po dwóch brzegach. Na potrzeby analizy najlepiej jest ustawić białko na środku:
+
+```bash
+gmx trjconv -s md_0_200ns.tpr -f md_0_200ns.xtc -o md_0_200ns_center.xtc -center -pbc mol -ur compact
+```
+Wybieramy `Protein` dla `centering` i `System` jako `output`
+
+To jednak nie chroni białka przed obracaniem się w czasie, co nie jest wygodne w analizie. Realnie interesuje nas rzeczywista ewolucja struktury i interakcji białko-ligand, a nie obrót i przesunięcie układu, które nie świadczą o rzeczywistej zmianie układu. Także możemy przesunąć (rotacja + translacja) w ten sposób, żeby kolejne klatki były mozliwie podobne do siebie:
+
+```bash 
+gmx trjconv -s md_0_200ns.tpr -f md_0_200ns_center.xtc -o md_0_200ns_fit.xtc -fit rot+trans
+```
+Wybieramy `Backbone` do `fit`owania i `System` jako `output`
+
+
+#### Energia interakcji
+
+
+```bash
+mkdir ie
+cp npt/npt.gro ie
+cp npt/npt.cpt ie
+cp npt/SYSTEM.top ie
+cp npt/index.ndx ie
+cp prod/md.mdp ie
+cd ie
+mv md.mdp ie.mdp
+```
+
+Edytujemy plik mdp dodając na końcu sekcji `Output control` linijkę:
+```
+energygrps = Protein JZ4
+```
+
+Przygotowujemy i uruchamiamy obliczenia.
+
+```bash
+gmx grompp -f ie.mdp -c npt.gro -t npt.cpt -p SYSTEM.top -n index.ndx -o ie.tpr
+
+nohup gmx mdrun -deffnm ie -rerun ../prod/md_0_200ns.xtc -nb cpu &
+```
+
+
+
+#### Analiza wiązań wodorowych
+
+Gromacs posiada wbudowane narzędzia do wykrywania wiązań wodorowych. Chcemy...
+
+```bash
+gmx hbond-legacy -f md_0_200ns_fit.xtc -s md_0_200ns.tpr -n index.ndx -hbn hbond.ndx -hbm hbond.xpm -g hbond.log
+```
+Wybieramy dwie grupy: białko i ligand
+
+
 
 
 ## Źródła, linki
