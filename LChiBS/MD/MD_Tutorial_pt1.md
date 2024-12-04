@@ -7,40 +7,49 @@ Instalacja Ubuntu w WSL:
 ```bash
 wsl --install -d Ubuntu-24.04
 ```
+Pod koniec instalacji Ubuntu w WSL trzeba skonfigurować konto użytkownika i hasło. Terminal Ubuntu powinien uruchomić się automatycznie, ale możemy go też uruchomić w aplikacji Terminal w Winowsie, wybierając `Ubuntu-24.04` z menu drop-down przy zakładkach kart, bądź wybierając program `Ubuntu-24.04` z menu start.
 
 **Reszta komend już w Ubuntu!**
 
-Instalacja Minicondy
+Do tworzenia i zarządzania środowiskami wirtualnymi i instalacji niektórych pakietów oprogramowania wykorzystamy **Micromambę**
 ```bash
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-bash ./Miniconda3-latest-Linux-x86_64.sh
+"${SHELL}" <(curl -L micro.mamba.pm/install.sh)
+```
+Po zainstalowaniu i skonfigurowaniu Mamby możemy uruchomić ponownie terminal Ubuntu i stworzyć środowisko wirtualne na nasze potrzeby
+```bash
+micromamba create --name MD
+```
+Aktywujemy utworzone środowisko
+```bash
+micromamba activate MD
+```
+I instalujemy potrzebne programy
+
+Najważniejszy jest pakiet AmberTools23 do przygotowania symulacji w pakiecie Amber. My będziemy używać pakietu gromacs do obliczeń, ale użyjemy pola siłowego Amber, dlatego pliki przygotujemy w AmberTools
+https://ambermd.org/GetAmber.php#ambertools
+```bash
+micromamba install -c conda-forge ambertools=23
+```
+Poza tym konieczne są pakiet PDB2PQR do ustalenia sprotonowania reszt aminokwasowych i dodania wodorów do białka oraz pakiet parmed do konwersji plików
+```bash
+pip install pdb2pqr parmed
 ```
 
-PyMol
+Program PyMol do wizualizacji można zainstalować z użyciem `condy` / `mamby`, ale też `apt`, albo używać instalacji w systemie Windows
 ```bash
-conda install pymol-open-source
+micromamba install pymol-open-source
+```
+albo
+```
+apt install pymol
 ```
 
-AmberTools23 https://ambermd.org/GetAmber.php#ambertools
-```bash
-# conda create --name AmberTools23
-conda install -c conda-forge ambertools=23
-```
-
-Gromacs
+Same obliczenia uruchamiać będziemy w pakiecie **gromacs**, który możemy zainstalować `apt`-em
 ```bash
 apt install gromacs
 ```
 
-PDB2PQR
-```bash
-pip install pdb2pqr 
-```
-
-Pakiet parmed
-```bash
-pip install parmed
-```
+W przypadku posiadania nietypowego systemu/sprzętu, konieczności optymalizacji oprogramowania, bądź potrzeby użycia innej wersji pakietu, można pobrać kod źródłowy i skompilować go z odpowiednią konfiguracją.
 
 
 ## Przygotowanie plików
@@ -58,7 +67,8 @@ Interesuje nas ligand JZ4
 awk '$1=="HETATM"' 3htb.pdb | awk '$4=="JZ4"' > jz4.pdb
 ```
 
-W pliku pdb nie ma wodorów, które są istotne w MD. W pakiecie Amber jest program `reduce`, ale nie zawsze działa tak jak trzeba. Można zawsze zrobić to ręcznie w pyMolu. Trzeba wtedy odpalić builder. Można tam poprawić typy wiązań, dodać automatycznie wodory **AddH** i ewentualnie poprawić ręcznie, co trzeba.
+W pliku pdb nie ma wodorów, które są istotne w MD. W pakiecie Amber jest program `reduce`, ale nie zawsze działa tak jak trzeba. Można zawsze zrobić to ręcznie w pyMolu.
+W tym celu należy uruchomić pymola z plikiem pdb (`pymol jz4.pdb`), uruchomić **Builder**. Można, jeżeli to konieczne, poprawić typy wiązań, a następnie dodać automatycznie wodory **AddH** i ewentualnie poprawić ręcznie cokolwiek, co jest niepoprawne.
 
 ```bash
 # przenumerowanie atomow i reszt
@@ -288,62 +298,12 @@ tail -n 30 md_0_200ns.log
 Możemy jednocześnie sprawdzać wykorzystanie zasobów poleceniem `htop` (dla karty NVIDIA `nvidia-smi`).
 
 
-### Postprodukcja
+W wyniku dostajemy kilka plików, w tym:
+- `md_0_200ns.log` - log symulacji (który odczytywaliśmy, żeby sprawdzić postęp symulacji
+- `md_0_200ns.xtc` - plik trajektorii z zapisanymi położeniami atomów w poszczególnych klatkach.
+- `md_0_200ns.edr` - plik zawierający informacje o wartościach energii, łącznie z poszczególnymi jej członami (elektrostatyczna, Van der Waalsa, etc)
 
-Symulacja odbywa się w periodycznych warunkach brzegowych i białko się przemieszcza, także często po pewnym czasie symulacji znajdzie się na brzegu "pudełka" symulacji, co sprawia, że w trajektorii atomy są rozrzucone po dwóch brzegach. Na potrzeby analizy najlepiej jest ustawić białko na środku:
-
-```bash
-gmx trjconv -s md_0_200ns.tpr -f md_0_200ns.xtc -o md_0_200ns_center.xtc -center -pbc mol -ur compact
-```
-Wybieramy `Protein` dla `centering` i `System` jako `output`
-
-To jednak nie chroni białka przed obracaniem się w czasie, co nie jest wygodne w analizie. Realnie interesuje nas rzeczywista ewolucja struktury i interakcji białko-ligand, a nie obrót i przesunięcie układu, które nie świadczą o rzeczywistej zmianie układu. Także możemy przesunąć (rotacja + translacja) w ten sposób, żeby kolejne klatki były mozliwie podobne do siebie:
-
-```bash 
-gmx trjconv -s md_0_200ns.tpr -f md_0_200ns_center.xtc -o md_0_200ns_fit.xtc -fit rot+trans
-```
-Wybieramy `Backbone` do `fit`owania i `System` jako `output`
-
-
-#### Energia interakcji
-
-
-```bash
-mkdir ie
-cp npt/npt.gro ie
-cp npt/npt.cpt ie
-cp npt/SYSTEM.top ie
-cp npt/index.ndx ie
-cp prod/md.mdp ie
-cd ie
-mv md.mdp ie.mdp
-```
-
-Edytujemy plik mdp dodając na końcu sekcji `Output control` linijkę:
-```
-energygrps = Protein JZ4
-```
-
-Przygotowujemy i uruchamiamy obliczenia.
-
-```bash
-gmx grompp -f ie.mdp -c npt.gro -t npt.cpt -p SYSTEM.top -n index.ndx -o ie.tpr
-
-nohup gmx mdrun -deffnm ie -rerun ../prod/md_0_200ns.xtc -nb cpu &
-```
-
-
-
-#### Analiza wiązań wodorowych
-
-Gromacs posiada wbudowane narzędzia do wykrywania wiązań wodorowych. Chcemy...
-
-```bash
-gmx hbond-legacy -f md_0_200ns_fit.xtc -s md_0_200ns.tpr -n index.ndx -hbn hbond.ndx -hbm hbond.xpm -g hbond.log
-```
-Wybieramy dwie grupy: białko i ligand
-
-
+Pliki `.edr` i `.xtc` są plikami binarnymi i nie można ich obejrzeć w zwykłym edytorze tekstu i należy do tego użyć albo dedykowanych programów pakietu gromacs, albo innych pakietów do analizy trajektorii MD, co omówione zostanie na 2. zajęciach.
 
 
 ## Źródła, linki
