@@ -51,10 +51,11 @@ nohup gmx mdrun -deffnm ie -rerun ../prod/md_0_200ns.xtc -nb cpu &
 Gromacs posiada wbudowane narzędzia do wykrywania wiązań wodorowych. Chcemy...
 
 ```bash
-gmx hbond-legacy -f md_0_200ns_fit.xtc -s md_0_200ns.tpr -n index.ndx -hbn hbond.ndx -hbm hbond.xpm -g hbond.log
+gmx hbond -f md_0_200ns_fit.xtc -s md_0_200ns.tpr -n index.ndx -hbn hbond.ndx -hbm hbond.xpm -g hbond.log
 ```
 Wybieramy dwie grupy: białko i ligand
 
+*W nowszych wersjach gromacs zamiast komendy hbond należy użyć `hbond_legacy`*
 
 
 
