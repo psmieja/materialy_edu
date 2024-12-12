@@ -58,31 +58,35 @@ Wybieramy dwie grupy: białko i ligand
 *W nowszych wersjach gromacs zamiast komendy hbond należy użyć `hbond_legacy`*
 
 
+## Przygotowanie filmiku w PyMol
+
+Uruchamiamy w PyMolu plik `SYSTEM.gro` i ładujemy trajektorię
+
+```
+PyMol> load_traj [plik z trajektorią]
+```
+
+Na tym etapie można odpowiednio ustawić widok, zaznaczyć wiązania, etc.
+
+Jeżeli w pliku z trajektorią mamy np. co setną klatkę, można "wygładzić" ruchy
+```
+smooth SYSTEM, 30, 3
+```
+
+Należy jednak zaznaczyć, że zmienia to pozycje atomów i uzyskana trajektoria nie powinna być wykorzystana do analizy!
+
+Następnie można wykonać ray tracing dla całej trajektorii (Movie -> Ray Trace Frames) i przygotować filmik (File -> Export Movie as -> PNG Images). PyMol pozwala oficjalnie od razu utworzyć plik MP4, ale w praktyce niekoniecznie to działa. Mając natomiast pliki png można je złączyć w filmik programem `ffmpeg`
+
+```
+ffmpeg -i *.png -c:v libx264 movie.mp4 
+```
+
+
 
 ## Źródła, linki
 
-Depozyt 3HTB, lisozym + ligand JZ4
-https://www.rcsb.org/structure/3HTB
-
-Publikacja dot. depozytu
-https://pmc.ncbi.nlm.nih.gov/articles/PMC2788029/pdf/nihms149280.pdf
-
-Tutorial MD w gromacs (stąd układ i pliki mdp)
+Tutorial MD w gromacs
 http://www.mdtutorials.com/gmx/complex/index.html
 
-Tutorial Amberowy do modelowania P450 z hemem, stąd część informacji
-https://ambermd.org/tutorials/advanced/tutorial20/mcpbpy_heme.php
-
-Dokumentacja AmberTools23
-https://ambermd.org/doc12/Amber23.pdf
-
-PDB2PQR do protonacji i dodawania wodorów do białka
-https://pdb2pqr.readthedocs.io/en/latest/using/index.html
-
-#### Gromacs
-
-Wszystkie opcje w pliku mdp
-https://manual.gromacs.org/current/user-guide/mdp-options.html
-
-Program `gmx grompp`
-https://manual.gromacs.org/current/onlinehelp/gmx-grompp.html#gmx-grompp
+Creating movie in PyMol
+https://www.blopig.com/blog/2018/12/turning-md-trajectories-into-movies-using-pymol/
