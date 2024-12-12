@@ -81,7 +81,16 @@ Następnie można wykonać ray tracing dla całej trajektorii (Movie -> Ray Trac
 ffmpeg -i *.png -c:v libx264 movie.mp4 
 ```
 
+## Analiza wyników w Jupyter Notebook
 
+Na początku konieczne jest zainstalowanie dodatkowych bibliotek i samego Jupyter Notebook
+```bash
+pip install GromacsWrapper mdanalysis notebook numpy matplotlib
+```
+
+Możemy go następnie uruchomić wykonując komendę
+
+Notatniki *Jupyter notebook* można tworzyć, otwierać i wykonywać również w Google Colab i zapisywać na dysku, co jest wygodne zwłaszcza jeśli nie potrzebujemy lokalnej przestrzeni dyskowej i mocy obliczeniowej, a problematyczne jest przygotowanie środowiska
 
 ## Źródła, linki
 
