@@ -5,31 +5,20 @@
 Symulacja odbywa się w periodycznych warunkach brzegowych i białko się przemieszcza, także często po pewnym czasie symulacji znajdzie się na brzegu "pudełka" symulacji, co sprawia, że w trajektorii atomy są rozrzucone po dwóch brzegach. Na potrzeby analizy najlepiej jest ustawić białko na środku:
 
 ```bash
-gmx trjconv -s md_0_200ns.tpr -f md_0_200ns.xtc -o md_0_200ns_center.xtc -center -pbc mol -ur compact
+gmx trjconv -s [plik tpr] -f [trajektoria wejściowa] -o [trajektoria wyjściowa] -center -pbc mol -ur compact
 ```
 Wybieramy `Protein` dla `centering` i `System` jako `output`
 
 To jednak nie chroni białka przed obracaniem się w czasie, co nie jest wygodne w analizie. Realnie interesuje nas rzeczywista ewolucja struktury i interakcji białko-ligand, a nie obrót i przesunięcie układu, które nie świadczą o rzeczywistej zmianie układu. Także możemy przesunąć (rotacja + translacja) w ten sposób, żeby kolejne klatki były mozliwie podobne do siebie:
 
 ```bash 
-gmx trjconv -s md_0_200ns.tpr -f md_0_200ns_center.xtc -o md_0_200ns_fit.xtc -fit rot+trans
+gmx trjconv -s [plik tpr] -f [trajektoria wejściowa] -o [trajektoria wyjściowa] -fit rot+trans
 ```
 Wybieramy `Backbone` do `fit`owania i `System` jako `output`
 
 
 #### Energia interakcji
 
-
-```bash
-mkdir ie
-cp npt/npt.gro ie
-cp npt/npt.cpt ie
-cp npt/SYSTEM.top ie
-cp npt/index.ndx ie
-cp prod/md.mdp ie
-cd ie
-mv md.mdp ie.mdp
-```
 
 Edytujemy plik mdp dodając na końcu sekcji `Output control` linijkę:
 ```
@@ -51,44 +40,62 @@ nohup gmx mdrun -deffnm ie -rerun ../prod/md_0_200ns.xtc -nb cpu &
 Gromacs posiada wbudowane narzędzia do wykrywania wiązań wodorowych. Chcemy...
 
 ```bash
-gmx hbond -f md_0_200ns_fit.xtc -s md_0_200ns.tpr -n index.ndx -hbn hbond.ndx -hbm hbond.xpm -g hbond.log
+gmx hbond -f [trajektoria] -s [plik tpr] -n index.ndx -hbn hbond.ndx -hbm hbond.xpm -g hbond.log
 ```
 Wybieramy dwie grupy: białko i ligand
 
-*W nowszych wersjach gromacs zamiast komendy hbond należy użyć `hbond_legacy`*
+*W zależności od wersji gromacs, zamiast `hbond` może być potrzebne użycie komendy `hbond_legacy`*
 
 
 ## Przygotowanie filmiku w PyMol
 
-Uruchamiamy w PyMolu plik `SYSTEM.gro` i ładujemy trajektorię
-
+Otwieramy w PyMolu plik `SYSTEM.gro`:
+```bash
+pymol SYSTEM.gro
 ```
-PyMol> load_traj [plik z trajektorią]
+
+i ładujemy przygotowaną wcześniej trajektorię
+```
+PyMol> load_traj [plik xtc]
 ```
 
-Na tym etapie można odpowiednio ustawić widok, zaznaczyć wiązania, etc.
+Jeżeli w badanym układzie cząsteczki wody nie odgrywają istotnej roli, można je wszsytkie usunąć (SYSTEM -> Action -> remove waters). Jeżeli chcemy zachować konkretne cząsteczki wody odgrywające znaczenie w badanej interakcji, możemy je wykluczyć z zaznaczenia...
+```bash
+remove resn WAT and not resi [indeks]
+```
 
-Jeżeli w pliku z trajektorią mamy np. co setną klatkę, można "wygładzić" ruchy
+To samo dotyczy jonów
+
+```bash
+remove resn Cl-
+```
+
+Można przybliżyć widok na interesującą nas część układu, wybierając ją i klikając (Action -> zoom). Jeżeli chcemy, żeby stała się ona również środkiem rotacji przy przeciąganiu lewym przyciskiem myszy, należy wybrać (Action -> orient).
+
+Jeżeli w pliku z trajektorią mamy np. co setną klatkę, można "wygładzić" ruchy, żeby filmik lepiej wyglądał. **Należy jednak zaznaczyć, że zmienia to pozycje atomów i uzyskana trajektoria nie powinna być wykorzystana do analizy!**
 ```
 smooth SYSTEM, 30, 3
 ```
+Warto zauważyć, że wygładzenie lepiej działa do demonstrowania dużych ruchów / zmian konformacyjnych i np obroty grup CH3 potrafią wyglądać niedorzecznie (i.e. wygładzenie prowadzi do utraty informacji w krótkich skalach czasowych). Można więc usunąć niepolarne wodory (Hide -> hydrogens -> nonpolar).
 
-Należy jednak zaznaczyć, że zmienia to pozycje atomów i uzyskana trajektoria nie powinna być wykorzystana do analizy!
+Jeśli między ligandem, a białkiem tworzą się wiązania wodorowe, można je zaznaczyć (Wizard -> Measurement -> Klikamy na pierwszy atom -> na drugi -> Done)
 
-Następnie można wykonać ray tracing dla całej trajektorii (Movie -> Ray Trace Frames) i przygotować filmik (File -> Export Movie as -> PNG Images). PyMol pozwala oficjalnie od razu utworzyć plik MP4, ale w praktyce niekoniecznie to działa. Mając natomiast pliki png można je złączyć w filmik programem `ffmpeg`
+Następnie można wykonać ray tracing dla całej trajektorii (Movie -> Ray Trace Frames). Daje to bardziej realistycznie wyglądające oświetlenie układu, **zajmuje jednak bardzo dużo czasu, dlatego podczas zajęć można pominąć ten krok.**
 
+Następnie można wyeksportować klatki (File -> Export Movie as -> PNG Images). PyMol pozwala od razu utworzyć plik MP4, ale w praktyce nie zawsze to działa. Na tym etapie powinniśmy dostać prompt z wyborem opcji `Ray` (Ray Tracing), bądź `Draw` (bez Ray Tracingu) oraz rozdzielczość filmiku.Należy wybrać
+
+Mając natomiast pliki png można je złączyć w filmik programem `ffmpeg`
+```bash
+ffmpeg -i mov%04d.png -c:v libx264 mov .mp4
 ```
-ffmpeg -i *.png -c:v libx264 movie.mp4 
-```
+
 
 ## Analiza wyników w Jupyter Notebook
 
-Na początku konieczne jest zainstalowanie dodatkowych bibliotek i samego Jupyter Notebook
+Możemy uruchomić Jupyter Notebook wykonując komendę
 ```bash
-pip install GromacsWrapper mdanalysis notebook numpy matplotlib
+jupyter notebook
 ```
-
-Możemy go następnie uruchomić wykonując komendę
 
 Notatniki *Jupyter notebook* można tworzyć, otwierać i wykonywać również w Google Colab i zapisywać na dysku, co jest wygodne zwłaszcza jeśli nie potrzebujemy lokalnej przestrzeni dyskowej i mocy obliczeniowej, a problematyczne jest przygotowanie środowiska
 

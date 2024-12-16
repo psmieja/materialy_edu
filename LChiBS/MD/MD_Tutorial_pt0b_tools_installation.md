@@ -37,13 +37,30 @@ Program PyMol do wizualizacji można zainstalować z użyciem `condy` / `mamby`,
 micromamba install pymol-open-source
 ```
 albo
-```
-apt install pymol
+```bash
+sudo apt install pymol
 ```
 
 Same obliczenia uruchamiać będziemy w pakiecie **gromacs**, który możemy zainstalować `apt`-em
 ```bash
-apt install gromacs
+sudo apt install gromacs
 ```
 
 W przypadku posiadania nietypowego systemu/sprzętu, konieczności optymalizacji oprogramowania, bądź potrzeby użycia innej wersji pakietu, można pobrać kod źródłowy i skompilować go z odpowiednią konfiguracją.
+
+
+Do przygotowania filmiku w 2. części ćwiczenia potrzebny jest program `ffmpeg`
+```bash
+sudo apt install ffmpeg
+```
+
+Jeśli nie ma programu do obejrzenia filmiku w mp4, można zainstalować  np. VLC
+```bash
+apt install vlc
+```
+
+## Instalacja narzędzi do analizy w Jupyter Notebook
+
+```bash
+pip install GromacsWrapper mdanalysis notebook numpy matplotlib
+```
