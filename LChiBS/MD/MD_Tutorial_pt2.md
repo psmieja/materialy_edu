@@ -1,6 +1,18 @@
 # Dynamika Molekularna 2: opracowanie i analiza wyników
 
-### Postprodukcja
+## Przypomnienie: formaty plików
+- `gro` - współrzędne układu
+- `top` - topologia układu
+- `ndx` - indeksy atomów należących do poszczególnych grup, takich jak *Protein*, czy *Water_and_ions*
+- `mdp` - (parametry symulacji MD takie, jak liczba iteracji, krok czasowy, algorytm całkowania, etc.
+- `tpr` - plik binarny z topologią, współrzędnymi i prędkościami atomów, parametrami symulacji itp. Zawiera wszsytkie informacje potrzebne do uruchomienia symulacji. Przygotowujemy go w z wykorzystaniem
+- `xtc` - binarny plik z trajektorią (współrzędnymi atomów w poszczególnych krokach czasowych)
+- `edr` - plik z wartościami poszczególnych członów energii w  wybranych krokach czasowych.
+ 
+Lista wszystkich formatów plików w gromacs:
+https://manual.gromacs.org/2023.3/reference-manual/file-formats.html
+
+## Postprodukcja
 
 Symulacja odbywa się w periodycznych warunkach brzegowych i białko się przemieszcza, także często po pewnym czasie symulacji znajdzie się na brzegu "pudełka" symulacji, co sprawia, że w trajektorii atomy są rozrzucone po dwóch brzegach. Na potrzeby analizy najlepiej jest ustawić białko na środku:
 
@@ -17,8 +29,9 @@ gmx trjconv -s [plik tpr] -f [trajektoria wejściowa] -o [trajektoria wyjściowa
 Wybieramy `Backbone` do `fit`owania i `System` jako `output`
 
 
-#### Energia interakcji
+### Energia interakcji
 
+Interesuje nas energia interakcji 
 
 Edytujemy plik mdp dodając na końcu sekcji `Output control` linijkę:
 ```
@@ -35,7 +48,7 @@ nohup gmx mdrun -deffnm ie -rerun ../prod/md_0_200ns.xtc -nb cpu &
 
 
 
-#### Analiza wiązań wodorowych
+### Analiza wiązań wodorowych
 
 Gromacs posiada wbudowane narzędzia do wykrywania wiązań wodorowych. Chcemy...
 
@@ -82,9 +95,9 @@ Jeśli między ligandem, a białkiem tworzą się wiązania wodorowe, można je 
 
 Następnie można wykonać ray tracing dla całej trajektorii (Movie -> Ray Trace Frames). Daje to bardziej realistycznie wyglądające oświetlenie układu, **zajmuje jednak bardzo dużo czasu, dlatego podczas zajęć można pominąć ten krok.**
 
-Następnie można wyeksportować klatki (File -> Export Movie as -> PNG Images). PyMol pozwala od razu utworzyć plik MP4, ale w praktyce nie zawsze to działa. Na tym etapie powinniśmy dostać prompt z wyborem opcji `Ray` (Ray Tracing), bądź `Draw` (bez Ray Tracingu) oraz rozdzielczość filmiku.Należy wybrać
+Następnie można wyeksportować klatki (File -> Export Movie as -> PNG Images). PyMol pozwala od razu utworzyć plik MP4, ale w praktyce nie zawsze to działa. Na tym etapie powinniśmy dostać prompt z wyborem opcji `Ray` (Ray Tracing), bądź `Draw` (bez Ray Tracingu) oraz rozdzielczość filmiku. **Na potrzeby zajęć lepiej zrezygnować z ray tracingu.** Należy też na tym etapie wybrać rozdzielczość (Jeśli generowanie klatek jest zbyt wolne, można obniżyć rozdzielczość) i nazwę bazową pliku. Tzn. wybierając nazwę "mov" dostaniemy pliki nazwane `mov0001.png`, `mov0002.png`, itd.
 
-Mając natomiast pliki png można je złączyć w filmik programem `ffmpeg`
+Mając już w folderze pliki png można je złączyć w filmik programem `ffmpeg`
 ```bash
 ffmpeg -i mov%04d.png -c:v libx264 mov .mp4
 ```
