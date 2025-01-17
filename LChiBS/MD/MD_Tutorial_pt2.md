@@ -31,22 +31,23 @@ Wybieramy `Backbone` do `fit`owania i `System` jako `output`
 
 ### Energia interakcji
 
-Interesuje nas energia interakcji 
+Interesuje nas energia interakcji białko-ligand. Te człony nie są jednakowoż wypisywane domyślnie w symulacji. Możemy uruchomić obliczenia ponownie, zmieniając jednak tylko to, co jest wypisywane do pliku `edr`, bez właściwych obliczeń.
 
-Edytujemy plik mdp dodając na końcu sekcji `Output control` linijkę:
+Jak na poprzednich etapach jest nam potrzebny plik z parametrami (`ie.mdp`).Powinien być on identyczny z plikiem `mdp` z oryginalnej symulacji (tej, z której trajektorię wykorzystujemy), z tą różnicą, że na końcu sekcji `Output control` linijkę:
 ```
 energygrps = Protein JZ4
 ```
 
-Przygotowujemy i uruchamiamy obliczenia.
-
+Używamy komendy `grompp`, żeby przygotować plik `tpr`
 ```bash
 gmx grompp -f ie.mdp -c npt.gro -t npt.cpt -p SYSTEM.top -n index.ndx -o ie.tpr
-
-nohup gmx mdrun -deffnm ie -rerun ../prod/md_0_200ns.xtc -nb cpu &
 ```
 
+Uruchamiamy
 
+```bash
+gmx mdrun -deffnm ie -rerun [trajektoria xtc] -nb cpu &
+```
 
 ### Analiza wiązań wodorowych
 
@@ -57,7 +58,7 @@ gmx hbond -f [trajektoria] -s [plik tpr] -n index.ndx -hbn hbond.ndx -hbm hbond.
 ```
 Wybieramy dwie grupy: białko i ligand
 
-*W zależności od wersji gromacs, zamiast `hbond` może być potrzebne użycie komendy `hbond_legacy`*
+*W zależności od wersji gromacs, zamiast `hbond` może być potrzebne użycie komendy `hbond-legacy`*
 
 
 ## Przygotowanie filmiku w PyMol
@@ -72,7 +73,13 @@ i ładujemy przygotowaną wcześniej trajektorię
 PyMol> load_traj [plik xtc]
 ```
 
-Jeżeli w badanym układzie cząsteczki wody nie odgrywają istotnej roli, można je wszsytkie usunąć (SYSTEM -> Action -> remove waters). Jeżeli chcemy zachować konkretne cząsteczki wody odgrywające znaczenie w badanej interakcji, możemy je wykluczyć z zaznaczenia...
+**Uwaga: w niektórych wersjach PyMol może być problem z załadowaniem trajektorii w ten sposób.** Zamiast tego można przygotować plik pdb, w którym kolejne klatki figurują jako osobne MODELe
+```bash
+gmx trjconv -s [plik tpr] -f [trajektoria xtc] -n [plik ndx] -o [plik wyjściowy pdb]
+```
+Możemy na tym etapie wybrać, które atomy mają zostać zapisane w pliku pdb. Jeśli w badanym układzie nie są dla nas istotne cząsteczki wody i jony, można jako `Output` wybrać tylko białko i ligand (`Protein_JZ4`). W rezultacie dostajemy plik `pdb`, który możemy otworzyć w PyMol (co może chwilę zająć, bo wszystkie klatki muszą się załadować) i nie musimy już osobno ładować trajektorii.
+
+Jeżeli w PyMolu jeszcze mamy cząsteczki wody, ale jednak ich nie potrzebujemy, możemy je wszysktie usunąć (SYSTEM -> Action -> remove waters). Jeżeli chcemy zachować konkretne cząsteczki wody odgrywające znaczenie w badanej interakcji, możemy je wykluczyć z zaznaczenia...
 ```bash
 remove resn WAT and not resi [indeks]
 ```
