@@ -16,13 +16,16 @@ pdb4amber -h
 
 ### Załadowanie modułów
 
-Pamiętaj, że na początku musisz załadować potrzebne moduły
-
-Będziemy wykorzystywać 
-
+Pamiętaj, że musisz ładować potrzebne moduły (polecenie `module load`)
+Będziemy wykorzystywać:
 - `gromacs/2024.4`
 - `ambertools/24`
 - `pymol`
+- opcjonalnie `python`
+
+**Uwaga:** Poszczególne programy mogą nie działać jeśli są załadowane inne moduły (mogą wystąpić konflikty zależności na danym urządzeniu). Można wtedy np ustawić osobne okna terminala do poszczególnych narzędzi, albo przed użyciem konkretnego programu "odładować" wszystkie moduły (`module reset`) i załadować tylko te konieczne do uruchomienia danego programu.
+
+
 
 ### Pobranie depozytu
 
@@ -30,9 +33,7 @@ Pobierz **2BQV** depozyt w formacie `pdb`
 
 ### Przygotowanie leku
 
-Zapisz współrzędne leku (odpowiednie rekordy `HETATM` z depozytu do nowego pliku `A1A_raw.pdb` 
-
-
+Zapisz współrzędne leku (odpowiednie rekordy `HETATM`) z depozytu do nowego pliku `A1A_raw.pdb`. Upewnij się, że w pliku są tylko porządane współrzędne. Możesz uruchomić uzyskany plik w PyMol i go obejrzeć.
 
 Wykorzustując program `reduce` z pakietu `AmberTools` dodaj wodory do leku. Zapisz uzyskaną cząsteczkę do nowego pliku `A1A_H.pdb`  
 
@@ -68,14 +69,16 @@ parmchk2 -i A1A.mol2 -o A1A.frcmod -f mol2
 W następnej kolejności należy wyciągnąć same atomy białka z pliku depozytu (wszystkie rekordy `ATOM`). Zapisz je do pliku
 `protein_raw.pdb`
 
-Kolejnym krokiem jest ustalenie protonacji reszt białka i dodanie do odpowiednio atomów wodoru. Na tym etapie trzeba ustalić w jakim pH odbywa się symulacja. Na potrzeby tego ćwiczenia proszę przyjąć pH 5.5
+Kolejnym krokiem jest ustalenie protonacji reszt białka i dodanie do odpowiednio atomów wodoru. Co istotne Amber ma własne kody reszt zależne od sprotonowania (np. zamiast `HIS` może być `HIE`).
+
+Na tym etapie trzeba ustalić w jakim pH odbywa się symulacja. Na potrzeby tego ćwiczenia proszę przyjąć pH 5.5. 
 
 Istnieje kilka rozwiązań.
 - Serwer H++ http://newbiophysics.cs.vt.edu/H++/
 - Serwer PDB2PQR https://server.poissonboltzmann.org/pdb2pqr
 - narzędzie w lini komend PDB2PQR
 
-W ostatnim plik `pdb` z poprawnymi typami reszt w formacie Amber uzyskać możemy wykonując następującą komendę:
+Polecamy ostatnie, jako najprostsze; można tam uzyskać plik `pdb` z poprawnymi typami reszt w formacie Amber uzyskać możemy wykonując następującą komendę:
 ```shell
 pdb2pqr --ffout AMBER --titration-state-method=propka --with-ph 5.5 --pdb-output protein_H.pdb ./protein_raw.pdb protein_H.pqr
 ```
@@ -225,7 +228,7 @@ Z tą różnicą, że teraz zaczynamy z "checkpointu" (`npt.cpt`)
 Uruchomienie symulacji
 
 ```bash
-nohup gmx mdrun -deffnm npt &
+gmx mdrun -deffnm npt
 ```
 
 ### Produkcyjne MD
@@ -243,11 +246,11 @@ nstlog                  = [co ile kroków wypisać logi]
 nstxout-compressed      = [co ile kroków zapisać współrzędne]
 ```
 
-A następnie odpalamy symulację
+A następnie uruchamiamy symulację
 
 ```bash
 gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p SYSTEM.top -n index.ndx -o md.tpr -maxwarn 2
-nohup gmx mdrun -deffnm md &
+gmx mdrun -deffnm md
 ```
 
 Możemy sprawdzać postęp symulacji odczytując logi
