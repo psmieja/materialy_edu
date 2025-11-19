@@ -21,8 +21,8 @@ Pamiętaj, że na początku musisz załadować potrzebne moduły
 Będziemy wykorzystywać 
 
 - `gromacs/2024.4`
-
 - `ambertools/24`
+- `pymol`
 
 ### Pobranie depozytu
 
@@ -37,54 +37,50 @@ Zapisz współrzędne leku (odpowiednie rekordy `HETATM` z depozytu do nowego pl
 Wykorzustując program `reduce` z pakietu `AmberTools` dodaj wodory do leku. Zapisz uzyskaną cząsteczkę do nowego pliku `A1A_H.pdb`  
 
 ```shell
-reduce A1A_raw.pdb > A1A_H.pdb
+reduce [plik wejściowy] > [plik wyjściowy]
 ```
 
 Obejrzyj plik w PyMol, zobacz, czy wygląda poprawnie
 
 
 
-Wykorzystaj program `pdb4amber`, żeby poprawić numerację w pliku. Zapisz plik wynikowy jako `A1A_renum.pdb`
+Wykorzystaj program `pdb4amber`, żeby poprawić numerację w pliku `A1A_H.pdb`. Zapisz plik wynikowy jako `A1A_renum.pdb`
 
 ```shell
-pdb4amber -i A1A_H.pdb -o A1A_renum.pdb
+pdb4amber -i [plik wejściowy] -o [plik wyjściowy]
 ```
 
-W następnej kolejności trzeba przygotować plik `mol2` który zawiera informacje o ładunkach i wiązniach. 
+W następnej kolejności trzeba przygotować plik w formacie `mol2` który zawiera informacje o ładunkach i wiązniach. W tym celu wykorzystaj program `antechamber` wykonując poniższą komendę
 
 ```shell
 antechamber -fi pdb -fo mol2 -i A1A_renum.pdb -o A1A.mol2 -c bcc -pf y -nc 0
 ```
 
-Konieczne jest przygotowanie również pliku `frcmod`, który zawiera dodatkowe parametry pola siłowego pot
+Konieczne jest przygotowanie również pliku `frcmod`, który zawiera dodatkowe parametry pola siłowego dla leku. Wykonaj poniższą komendę.
 
 ```shell
 parmchk2 -i A1A.mol2 -o A1A.frcmod -f mol2
 ```
 
+
 ### Przygotowanie białka
 
-Wyciągamy atomy białka z pliku depozytu (wszystkie rekordy `ATOM` ) i zapisujemy je do plik `protein_raw.pdb`
+W następnej kolejności należy wyciągnąć same atomy białka z pliku depozytu (wszystkie rekordy `ATOM`). Zapisz je do pliku
+`protein_raw.pdb`
 
-```shell
-awk '$1=="ATOM"' 2BQV.pdb > protein_raw.pdb
-```
-
-Ustalenie protonacji reszt i dodanie wodoru do białka 
+Kolejnym krokiem jest ustalenie protonacji reszt białka i dodanie do odpowiednio atomów wodoru. Na tym etapie trzeba ustalić w jakim pH odbywa się symulacja. Na potrzeby tego ćwiczenia proszę przyjąć pH 5.5
 
 Istnieje kilka rozwiązań.
-
 - Serwer H++ http://newbiophysics.cs.vt.edu/H++/
-
 - Serwer PDB2PQR https://server.poissonboltzmann.org/pdb2pqr
+- narzędzie w lini komend PDB2PQR
 
-- narzędzie CMD PDB2PQR
-
+W ostatnim plik `pdb` z poprawnymi typami reszt w formacie Amber uzyskać możemy wykonując następującą komendę:
 ```shell
 pdb2pqr --ffout AMBER --titration-state-method=propka --with-ph 5.5 --pdb-output protein_H.pdb ./protein_raw.pdb protein_H.pqr
 ```
 
-Numeracja (analogicznie)
+Poprawa numeracji białka (analogicznie do ligandu)
 
 ```shell
 pdb4amber -i protein_H.pdb -o protein_renum.pdb
@@ -92,21 +88,16 @@ pdb4amber -i protein_H.pdb -o protein_renum.pdb
 
 ### System
 
-Złączenie plików
+Utwórz nowy plik `system.pdb` zawierający zarówno atomy białka jak i ligandu zawarte w utworzonych wcześniej plikach `protein_renum.pdb` i `A1A_renum.pdb`. **Uwaga:** Nie umieszczaj w nowym pliku rekordu `END`
 
-```shell
-cat protein_renum.pdb A1A_renum.pdb | awk '$1!="END"' > system.pdb
+Ponownie uruchom program `pdb4amber`, tym razem dla całego systemu, tworząc plik `system_renum.pdb`
+
+### Przygotowanie symulacji: tleap
+Następnym krokiem jest przygotowanie plików wejściowych do symulacji. Wymaga to między innymi zdefiniowania pól siłowych, załadowania współrzędnych oraz dodania rozpuszczalnika. W przypadku pól siłowych Amber robimy to w programie leap
+
+Utwórz nowy plik `tleap.in` o treści:
+
 ```
-
-Numeracja (analogicznie)
-
-```shell
-cat protein_renum.pdb A1A_renum.pdb | awk '$1!="END"' > system.pdb
-```
-
-Utwórz plik `tleap.in` o treści:
-
-```shell
 source leaprc.protein.ff14SB
 source leaprc.water.tip3p
 source leaprc.gaff2
@@ -131,10 +122,7 @@ tleap -f tleap.in
 ```
 
 
-
 Uzyskane pliki `SYSTEM.prmtop` i `SYSTEM.inpcrd` są dostosowane do programu Amber. My obliczenia jednak uruchamiać będziemy w Gromacsie, zatem trzeba przekonwertować pliki.
-
-
 
 W tym celu, w  interpreterze Python wykonaj poniższy kod. Jeśli nie jest dostępny `parmed`, można zainstalować go komendą `pip install parmed`. Jeśli nie ma takiej możliwości lokalnie, można to uczynić w Colabie
 
@@ -203,7 +191,7 @@ I wychodzimy
 > q
 ```
 
-Pojawił się plik `index.ndx` zawierający definicje grup. Teraz chcemy wejść w plik `nvt.mdp`, sprawdźmy linijkę `tc-grps`. Powinno być `Protein_A1A Water_and_ions`. W razie potrzeby edytujemy mdp, żeby poprawić grupki termostatowania
+Pojawił się plik `index.ndx` zawierający definicje grup. Teraz chcemy wejść w plik `nvt.mdp`, sprawdźmy linijkę `tc-grps`. Powinno być `Protein_A1A Water_and_ions`. W razie potrzeby edytujemy mdp, żeby poprawić grupy termostatowania
 
 ### Równoważenie NVT
 
@@ -221,23 +209,18 @@ nohup gmx mdrun -deffnm nvt &
 
 ### Równoważenie NPT
 
-Najpierw przygotowujemy wszystkie potrzebne pliki
+Pobieramy plik z parametrami symulacji.
 
 ```shell
-mkdir ../npt
-cd ../npt
-cp ../nvt/nvt.cpt .
-cp ../nvt/nvt.gro .
-cp ../nvt/index.ndx .
-cp ../nvt/SYSTEM.top .
 wget http://www.mdtutorials.com/gmx/complex/Files/npt.mdp
 ```
 
-Można na tym etapie wprowadzić niezbędne zmiany do pliku `mdp`
+Można na tym etapie wprowadzić niezbędne zmiany do pliku `mdp`. Przede wszsytkim należy zmienić nazwy grup termostatowania, jak w pliku do NVT. Następnie, znowu analogicznie do NVT:
 
 ```bash
 gmx grompp -f npt.mdp -c nvt.gro -t nvt.cpt -r nvt.gro -p SYSTEM.top -n index.ndx -o npt.tpr -maxwarn 2
 ```
+Z tą różnicą, że teraz zaczynamy z "checkpointu" (`npt.cpt`)
 
 Uruchomienie symulacji
 
@@ -247,46 +230,36 @@ nohup gmx mdrun -deffnm npt &
 
 ### Produkcyjne MD
 
-```bash
-mkdir ../prod
-cd ../prod
-cp ../npt/npt.cpt .
-cp ../npt/npt.gro .
-cp ../npt/index.ndx .
-cp ../npt/SYSTEM.top .
-wget http://www.mdtutorials.com/gmx/complex/Files/md.mdp
-```
-
-Edytujemy w pliku mdp (`vim md.mdp` bądź inny edytor) czas symulacji i częstość wypisywania rzeczy tak, żeby dostać 200ns symulacji i jednocześnie nie mieć za dużo outputu. Warto zobaczyć, że uruchamiając `grompp` dostajemy informację ile przestrzeni dyskowej powinien zająć outupt!
+Edytujemy w pliku mdp (`vim md.mdp` bądź inny edytor) czas symulacji i częstość wypisywania rzeczy. Warto zobaczyć, że uruchamiając `grompp` dostajemy informację ile przestrzeni dyskowej powinien zająć outupt!
 
 ```markup
 ; Run parameters
-integrator              = md         ; leap-frog integrator
-nsteps                  = 100000000  ; 2 * 100000000 = 200000 ps (200 ns)
-dt                      = 0.002      ; 2 fs
+integrator              = md           ; leap-frog integrator
+nsteps                  = [ile kroków] ;
+dt                      = 0.002        ; 2 fs
 ; Output control
-nstenergy               = 50000      ; save energies every 100.0 ps
-nstlog                  = 50000      ; update log file every 100.0 ps
-nstxout-compressed      = 50000      ; save coordinates every 100.0 ps
+nstenergy               = [co ile kroków zapisać energię] 
+nstlog                  = [co ile kroków wypisać logi]
+nstxout-compressed      = [co ile kroków zapisać współrzędne]
 ```
 
 A następnie odpalamy symulację
 
 ```bash
-gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p SYSTEM.top -n index.ndx -o md_0_200ns.tpr -maxwarn 2
-nohup gmx mdrun -deffnm md_0_200ns &
+gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p SYSTEM.top -n index.ndx -o md.tpr -maxwarn 2
+nohup gmx mdrun -deffnm md &
 ```
 
 Możemy sprawdzać postęp symulacji odczytując logi
 
 ```shell
-tail -n 30 md_0_200ns.log
+tail -n 30 md.log
 ```
 
 Możemy jednocześnie sprawdzać wykorzystanie zasobów poleceniem `htop` (dla karty NVIDIA `nvidia-smi`).
 W wyniku dostajemy kilka plików, w tym:
 
-- `md_0_200ns.log` - log symulacji (który odczytywaliśmy, żeby sprawdzić postęp symulacji
-- `md_0_200ns.xtc` - plik trajektorii z zapisanymi położeniami atomów w poszczególnych klatkach.
-- `md_0_200ns.edr` - plik zawierający informacje o wartościach energii, łącznie z poszczególnymi jej członami (elektrostatyczna, Van der Waalsa, etc)
+- `md.log` - log symulacji (który odczytywaliśmy, żeby sprawdzić postęp symulacji
+- `md.xtc` - plik trajektorii z zapisanymi położeniami atomów w poszczególnych klatkach.
+- `md.edr` - plik zawierający informacje o wartościach energii, łącznie z poszczególnymi jej członami (elektrostatyczna, Van der Waalsa, etc)
   Pliki `.edr` i `.xtc` są plikami binarnymi i nie można ich obejrzeć w zwykłym edytorze tekstu i należy do tego użyć albo dedykowanych programów pakietu gromacs, albo innych pakietów do analizy trajektorii MD, co omówione zostanie na 2. zajęciach.
