@@ -174,7 +174,7 @@ Copied index group 13 'A1A'
 Merged two groups with OR: 2614 22 -> 2636
 ```
 
-Pojawia się nowa grupa ` 18 Protein_JZ4 :  2636 atoms`. Wszystko pozostałe chcemy wrzucić w drugą grupę:
+Pojawia się nowa grupa ` 18 Protein_A1A :  2636 atoms`. Wszystko pozostałe chcemy wrzucić w drugą grupę:
 
 ```shell
 > ! 18 
@@ -204,10 +204,10 @@ Przygotowujemy plik symulacji...
 gmx grompp -f nvt.mdp -c em.gro -r em.gro -p SYSTEM.top -n index.ndx -o nvt.tpr -maxwarn 2
 ```
 
-Potem, jak już chcemy uruchomić symulację, robimy to poleceniem `gmx mdrun`. Żeby komenda działała w tle, trzeba dorzucić na końcu `&`. Niestety, jeśli rozłączymy się z serwerem, celowo lub przypadkowo, program zostanie przerwany. Żeby temu zapobiec odpalamy go z `nohup`:
+Potem, jak już chcemy uruchomić symulację, robimy to poleceniem `gmx mdrun`. 
 
 ```bash
-nohup gmx mdrun -deffnm nvt &
+gmx mdrun -deffnm nvt &
 ```
 
 ### Równoważenie NPT
