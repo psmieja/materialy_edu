@@ -35,7 +35,7 @@ Interesuje nas energia interakcji białko-ligand. Te człony nie są jednakowoż
 
 Jak na poprzednich etapach jest nam potrzebny plik z parametrami (`ie.mdp`).Powinien być on identyczny z plikiem `mdp` z oryginalnej symulacji (tej, z której trajektorię wykorzystujemy), z tą różnicą, że na końcu sekcji `Output control` linijkę:
 ```
-energygrps = Protein JZ4
+energygrps = Protein A1A
 ```
 
 Używamy komendy `grompp`, żeby przygotować plik `tpr`
@@ -63,7 +63,7 @@ Wybieramy dwie grupy: białko i ligand
 
 ## Analiza wyników w Colabie (Jupyter notebook)
 
-
+...
 
 ## Źródła, linki
 

@@ -145,7 +145,7 @@ PyMol> load_traj [plik xtc]
 ```bash
 gmx trjconv -s [plik tpr] -f [trajektoria xtc] -n [plik ndx] -o [plik wyjściowy pdb]
 ```
-Możemy na tym etapie wybrać, które atomy mają zostać zapisane w pliku pdb. Jeśli w badanym układzie nie są dla nas istotne cząsteczki wody i jony, można jako `Output` wybrać tylko białko i ligand (`Protein_JZ4`). W rezultacie dostajemy plik `pdb`, który możemy otworzyć w PyMol (co może chwilę zająć, bo wszystkie klatki muszą się załadować) i nie musimy już osobno ładować trajektorii.
+Możemy na tym etapie wybrać, które atomy mają zostać zapisane w pliku pdb. Jeśli w badanym układzie nie są dla nas istotne cząsteczki wody i jony, można jako `Output` wybrać tylko białko i ligand (`Protein_A1A`). W rezultacie dostajemy plik `pdb`, który możemy otworzyć w PyMol (co może chwilę zająć, bo wszystkie klatki muszą się załadować) i nie musimy już osobno ładować trajektorii.
 
 Jeżeli w PyMolu jeszcze mamy cząsteczki wody, ale jednak ich nie potrzebujemy, możemy je wszysktie usunąć (SYSTEM -> Action -> remove waters). Jeżeli chcemy zachować konkretne cząsteczki wody odgrywające znaczenie w badanej interakcji, możemy je wykluczyć z zaznaczenia...
 ```bash
