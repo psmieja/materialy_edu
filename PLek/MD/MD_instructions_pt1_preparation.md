@@ -1,3 +1,5 @@
+# Dynamika Molekularna 1: przygotowanie układu
+
 ## Wstep
 
 Znowu pracujemy z proteazą HIV-1
@@ -25,6 +27,7 @@ Będziemy wykorzystywać:
 
 **Uwaga:** Poszczególne programy mogą nie działać jeśli są załadowane inne moduły (mogą wystąpić konflikty zależności na danym urządzeniu). Można wtedy np ustawić osobne okna terminala do poszczególnych narzędzi, albo przed użyciem konkretnego programu "odładować" wszystkie moduły (`module reset`) i załadować tylko te konieczne do uruchomienia danego programu.
 
+**Uwaga:** W ćwiczeniu tym tworzymy wiele plików. Polecamy, w związku z tym, stworzyć nowy katalog na to zadanie.
 
 
 ### Pobranie depozytu
@@ -135,134 +138,3 @@ parm = parmed.load_file('./SYSTEM.prmtop', './SYSTEM.inpcrd')
 parm.save('SYSTEM.top', format='gromacs')
 parm.save('SYSTEM.gro')
 ```
-
-## Obliczenia MD
-
-### Minimalizacja
-
-Wykorzystamy gotowe pliki z parametrami symulacji, wprowadzając jedynie niezbędne zmiany. Opis wszystkich parametrów w pliku mdp można znaleźć w dokumentacji (https://manual.gromacs.org/current/user-guide/mdp-options.html)
-
-```bash
-wget http://www.mdtutorials.com/gmx/complex/Files/em.mdp
-```
-
-```bash
-gmx grompp -f em.mdp -c SYSTEM.gro -p SYSTEM.top -o em.tpr -maxwarn 2
-gmx mdrun -v -deffnm em
-```
-
-### Przygotowanie NVT
-
-Pobieramy plik
-
-```bash
-wget http://www.mdtutorials.com/gmx/complex/Files/nvt.mdp
-```
-
-Przygotowujemy grupy termostatowania
-
-```shell
-gmx make_ndx -f em.gro -o index.ndx
-```
-
-Przygotowujemy jedną grupę złożoną z białka i ligandu
-
-```shell
-> 1 | 13
-Copied index group 1 'Protein'
-Copied index group 13 'A1A'
-Merged two groups with OR: 2614 22 -> 2636
-```
-
-Pojawia się nowa grupa ` 18 Protein_A1A :  2636 atoms`. Wszystko pozostałe chcemy wrzucić w drugą grupę:
-
-```shell
-> ! 18 
-Copied index group 18 'Protein_A1A'
-Complemented group: 24576 atoms
-```
-
-Możemy ją nazwać `Water_and_ions`
-
-```shell
-> name 19 Water_and_ions 
-```
-
-I wychodzimy
-
-```shell
-> q
-```
-
-Pojawił się plik `index.ndx` zawierający definicje grup. Teraz chcemy wejść w plik `nvt.mdp`, sprawdźmy linijkę `tc-grps`. Powinno być `Protein_A1A Water_and_ions`. W razie potrzeby edytujemy mdp, żeby poprawić grupy termostatowania
-
-### Równoważenie NVT
-
-Przygotowujemy plik symulacji...
-
-```bash
-gmx grompp -f nvt.mdp -c em.gro -r em.gro -p SYSTEM.top -n index.ndx -o nvt.tpr -maxwarn 2
-```
-
-Potem, jak już chcemy uruchomić symulację, robimy to poleceniem `gmx mdrun`. 
-
-```bash
-gmx mdrun -deffnm nvt &
-```
-
-### Równoważenie NPT
-
-Pobieramy plik z parametrami symulacji.
-
-```shell
-wget http://www.mdtutorials.com/gmx/complex/Files/npt.mdp
-```
-
-Można na tym etapie wprowadzić niezbędne zmiany do pliku `mdp`. Przede wszsytkim należy zmienić nazwy grup termostatowania, jak w pliku do NVT. Następnie, znowu analogicznie do NVT:
-
-```bash
-gmx grompp -f npt.mdp -c nvt.gro -t nvt.cpt -r nvt.gro -p SYSTEM.top -n index.ndx -o npt.tpr -maxwarn 2
-```
-Z tą różnicą, że teraz zaczynamy z "checkpointu" (`npt.cpt`)
-
-Uruchomienie symulacji
-
-```bash
-gmx mdrun -deffnm npt
-```
-
-### Produkcyjne MD
-
-Edytujemy w pliku mdp (`vim md.mdp` bądź inny edytor) czas symulacji i częstość wypisywania rzeczy. Warto zobaczyć, że uruchamiając `grompp` dostajemy informację ile przestrzeni dyskowej powinien zająć outupt!
-
-```markup
-; Run parameters
-integrator              = md           ; leap-frog integrator
-nsteps                  = [ile kroków] ;
-dt                      = 0.002        ; 2 fs
-; Output control
-nstenergy               = [co ile kroków zapisać energię] 
-nstlog                  = [co ile kroków wypisać logi]
-nstxout-compressed      = [co ile kroków zapisać współrzędne]
-```
-
-A następnie uruchamiamy symulację
-
-```bash
-gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p SYSTEM.top -n index.ndx -o md.tpr -maxwarn 2
-gmx mdrun -deffnm md
-```
-
-Możemy sprawdzać postęp symulacji odczytując logi
-
-```shell
-tail -n 30 md.log
-```
-
-Możemy jednocześnie sprawdzać wykorzystanie zasobów poleceniem `htop` (dla karty NVIDIA `nvidia-smi`).
-W wyniku dostajemy kilka plików, w tym:
-
-- `md.log` - log symulacji (który odczytywaliśmy, żeby sprawdzić postęp symulacji
-- `md.xtc` - plik trajektorii z zapisanymi położeniami atomów w poszczególnych klatkach.
-- `md.edr` - plik zawierający informacje o wartościach energii, łącznie z poszczególnymi jej członami (elektrostatyczna, Van der Waalsa, etc)
-  Pliki `.edr` i `.xtc` są plikami binarnymi i nie można ich obejrzeć w zwykłym edytorze tekstu i należy do tego użyć albo dedykowanych programów pakietu gromacs, albo innych pakietów do analizy trajektorii MD, co omówione zostanie na 2. zajęciach.
